@@ -14,8 +14,7 @@ class Event extends Model
 
     static function getEvents( string $startDate, string $endDate )
     {
-        return self::whereDate('scheduled_date', '>=', $startDate )
-            ->whereDate('scheduled_date', '<=', $endDate )
+        return self::whereBetween('scheduled_date', [ $startDate, $endDate ] )
             ->get()
             ->toArray();
     }
