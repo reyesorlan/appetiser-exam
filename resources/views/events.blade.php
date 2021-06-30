@@ -226,17 +226,87 @@
                 transform: rotate(360deg);
             }
         }
+
+        /* Toast CSS */
+
+        #toasts {
+            min-height: 0;
+            position: fixed;
+            right: 20px;
+            top: 20px;
+            width: 400px;
+        }
+
+        #toasts .toast {
+            background: #d6d8d9;
+            border-radius: 3px;
+            box-shadow: 2px 2px 3px rgba(0, 0, 0, .1);
+            color: rgba(0, 0, 0, .6);
+            cursor: default;
+            margin-bottom: 20px;
+            opacity: 0;
+            position: relative;
+            padding: 1px 5px;
+            transform: translateY(15%);
+            transition: opacity .5s ease-in-out, transform .5s ease-in-out;
+            width: 100%;
+            will-change: opacity, transform;
+            z-index: 1100;
+        }
+
+        #toasts .toast.success {
+            background: rgba(114, 179, 114, 0.8);
+            color: #FFFFFF;
+        }
+
+        #toasts .toast.warning {
+            background: #ffa533;
+        }
+
+        #toasts .toast.info {
+            background: #2cbcff;
+        }
+
+        #toasts .toast.error {
+            background: rgba(244, 67, 54, 0.8);
+            color: #FFFFFF;
+        }
+
+        #toasts .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+            transition: opacity .5s ease-in-out, transform .5s ease-in-out;
+        }
+
+        #toasts .toast.hide {
+            height: 0;
+            margin: 0;
+            opacity: 0;
+            overflow: hidden;
+            padding: 0 30px;
+            transition: all .5s ease-in-out;
+        }
+
+        #toasts .toast .close {
+            cursor: pointer;
+            font-size: 15px;
+            height: 16px;
+            margin-top: -20px;
+            position: absolute;
+            right: 9px;
+            top: 50%;
+            width: 16px;
+        }
     </style>
     <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-
-    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
-    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script type="text/javascript" src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
 </head>
 
 <body>
 
     <div class="paper">
-
+        <div id="toasts"></div>
         <div class="page-title">
             <h2>Calendar</h2>
         </div>
@@ -329,13 +399,84 @@
         var dates = JSON.parse('<?php echo json_encode($dates); ?>');
 
         $(function () {
+
             $("#loading-btn").hide();
             $('#from-date').datepicker();
             $('#to-date').datepicker();
             $("#calendar-title").text(calendarTitle);
 
-            var events = [];
+            var defaultConfig = {
+                type: '',
+                autoDismiss: true,
+                container: '#toasts',
+                autoDismissDelay: 4000,
+                transitionDuration: 300
+            };
 
+            $.toast = function (config) {
+                var size = arguments.length;
+                var isString = typeof (config) === 'string';
+
+                if (isString && size === 1) {
+                    config = {
+                        message: config
+                    };
+                }
+
+                if (isString && size === 2) {
+                    config = {
+                        message: arguments[1],
+                        type: arguments[0]
+                    };
+                }
+
+                return new toast(config);
+            };
+
+            var toast = function (config) {
+                config = $.extend({}, defaultConfig, config);
+                // show "x" or not
+                var close = config.autoDismiss ? '' : '&times;';
+
+                // toast template
+                var toast = $([
+                    '<div class="toast ' + config.type + '">',
+                    '<p>' + config.message + '</p>',
+                    '<div class="close">' + close + '</div>',
+                    '</div>'
+                ].join(''));
+
+                // handle dismiss
+                toast.find('.close').on('click', function () {
+                    var toast = $(this).parent();
+
+                    toast.addClass('hide');
+
+                    setTimeout(function () {
+                        toast.remove();
+                    }, config.transitionDuration);
+                });
+
+                // append toast to toasts container
+                $(config.container).append(toast);
+
+                // transition in
+                setTimeout(function () {
+                    toast.addClass('show');
+                }, config.transitionDuration);
+
+                // if auto-dismiss, start counting
+                if (config.autoDismiss) {
+                    setTimeout(function () {
+                        toast.find('.close').click();
+                    }, config.autoDismissDelay);
+                }
+
+                return this;
+            };
+
+            var events = [];
+           
             requestEvents(startDate, endDate);
 
         });
@@ -400,7 +541,7 @@
 
         function createEvents() {
 
-            
+
             var name = $("#event-name").val();
             var fromDate = $("#from-date").val();
             var toDate = $("#to-date").val();
@@ -434,11 +575,12 @@
                     method: "POST",
                     data: params,
                     success: function (data) {
+                        $.toast('success', 'Successfully saved!');
 
                         requestEvents(startDate, endDate);
 
                     }, error: function (data) {
-                        alert(data);
+                        $.toast('error', 'Failed!');
                         $("#submit-btn").show();
                         $("#loading-btn").hide();
                     }
