@@ -341,7 +341,8 @@
         });
 
         function requestEvents(startDate, endDate) {
-
+            $("#submit-btn").hide();
+            $("#loading-btn").show();
             $.ajax({
 
                 url: "/api/events/" + startDate + "/" + endDate,
@@ -392,6 +393,9 @@
 
                 $("#dates").append(divDay);
             });
+
+            $("#submit-btn").show();
+            $("#loading-btn").hide();
         }
 
         function createEvents() {
@@ -432,8 +436,7 @@
                     success: function (data) {
 
                         requestEvents(startDate, endDate);
-                        $("#submit-btn").show();
-                        $("#loading-btn").hide();
+
                     }, error: function (data) {
                         alert(data);
                         $("#submit-btn").show();
